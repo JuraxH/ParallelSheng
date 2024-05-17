@@ -1,25 +1,46 @@
 use crate::dfa::TransitionTable;
+// clasic dfas using arrays to store the successor states
 
+// successors are grouped by states, the address of successor is calculated
+// as: table_offset + state * 256 + symbol
 pub(crate) struct Table1 {
     table: [[u8; 256]; 16],
 }
 
+// successors are grouped by symbols, the address of successor is calculated
+// as: table_offset + symbol * 256 * 16 + state
+// this tends to be faster with small dfas, especially when unrolled
+// the future symbols are known and the part of address computation
+// involving them can be done before the previous state is computed
 pub(crate) struct Table2 {
     table: [[u8; 16]; 256],
 }
 
-impl TransitionTable for Table1 {
-    fn new(default_state: u8) -> Self {
-        let table = [[default_state; 256]; 16];
+impl Table1 {
+    pub fn new(transitions: &[[u8; 256]; 16]) -> Self {
+        let mut table = [[0u8; 256]; 16];
+        for s in 0..16 {
+            for c in 0..256 {
+                table[s][c] = transitions[s][c];
+            }
+        }
         Self { table }
     }
+}
 
-    fn set_succ(&mut self, src: u8, symbol: u8, dst: u8) {
-        assert!(src < 16);
-        assert!(dst < 16);
-        self.table[src as usize][symbol as usize] = dst;
+impl Table2 {
+    pub fn new(transitions: &[[u8; 256]; 16]) -> Self {
+        let mut table = [[0u8; 16]; 256];
+        for s in 0..16 {
+            for c in 0..256 {
+                table[c][s] = transitions[s][c];
+            }
+        }
+        Self { table }
     }
+}
 
+impl TransitionTable for Table1 {
     #[cfg(not(feature="unroll"))]
     fn run(&self, mut s: u8, input: &[u8]) -> u8 {
         assert!(s < 16);
@@ -67,17 +88,6 @@ impl TransitionTable for Table1 {
 }
 
 impl TransitionTable for Table2 {
-    fn new(default_state: u8) -> Self {
-        let table = [[default_state; 16]; 256];
-        Self { table }
-    }
-
-    fn set_succ(&mut self, src: u8, symbol: u8, dst: u8) {
-        assert!(src < 16);
-        assert!(dst < 16);
-        self.table[symbol as usize][src as usize] = dst;
-    }
-
     #[cfg(not(feature="unroll"))]
     fn run(&self, s: u8, input: &[u8]) -> u8 {
         assert!(s < 16);

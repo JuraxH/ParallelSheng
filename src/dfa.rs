@@ -1,7 +1,5 @@
 pub trait TransitionTable {
-    fn new(defaut_state: u8) -> Self;
-    fn set_succ(&mut self, src: u8, symbol: u8, dst: u8);
-    fn run(&self, s: u8, input: &[u8]) -> u8;
+    fn run(&self, s: u8, input: &'static [u8]) -> u8;
 }
 
 pub struct DFA<T: TransitionTable> {
@@ -10,54 +8,51 @@ pub struct DFA<T: TransitionTable> {
 }
 
 impl<T: TransitionTable> DFA<T> {
-    pub fn new() -> Self {
+    pub fn new(transitions: T) -> Self {
         Self {
             init: 1,
-            transitions: T::new(0),
+            transitions,
         }
     }
 
-    pub fn run(&self, s: u8, input: &[u8]) -> u8 {
+    pub fn run(&mut self, s: u8, input: &'static [u8]) -> u8 {
         self.transitions.run(s, input)
-    }
-
-    pub fn set_succ(&mut self, src: u8, symbol: u8, dst: u8) {
-        self.transitions.set_succ(src, symbol, dst);
     }
 }
 
 // r'hello.*world'
-pub fn example_dfa<T: TransitionTable>() -> DFA<T> {
-    let mut dfa = DFA::<T>::new();
-    dfa.set_succ(1, 'h' as u8, 2);
-    dfa.set_succ(2, 'e' as u8, 3);
-    dfa.set_succ(3, 'l' as u8, 4);
-    dfa.set_succ(4, 'l' as u8, 5);
-    dfa.set_succ(5, 'o' as u8, 6);
+pub fn example_dfa() -> [[u8; 256]; 16] {
+    let mut transitions: [[u8; 256]; 16] = [[0u8; 256]; 16];
+    transitions[1]['h' as usize] = 2;
+    transitions[2]['e' as usize] = 3;
+    transitions[3]['l' as usize] = 4;
+    transitions[4]['l' as usize] = 5;
+    transitions[5]['o' as usize] = 6;
     for i in 0..=255 {
-        dfa.set_succ(6, i as u8, 6);
-        dfa.set_succ(7, i as u8, 6);
-        dfa.set_succ(8, i as u8, 6);
-        dfa.set_succ(9, i as u8, 6);
-        dfa.set_succ(10, i as u8, 6);
-        dfa.set_succ(11, i as u8, 6);
+        transitions[6][i as usize] = 6;
+        transitions[7][i as usize] = 6;
+        transitions[8][i as usize] = 6;
+        transitions[9][i as usize] = 6;
+        transitions[10][i as usize] = 6;
+        transitions[11][i as usize] = 6;
         if i == 'w' as u8 {
-            dfa.set_succ(6, i as u8, 7);
-            dfa.set_succ(7, i as u8, 7);
-            dfa.set_succ(8, i as u8, 7);
-            dfa.set_succ(9, i as u8, 7);
-            dfa.set_succ(10, i as u8, 7);
-            dfa.set_succ(11, i as u8, 7);
+            transitions[5][i as usize] = 7;
+            transitions[6][i as usize] = 7;
+            transitions[7][i as usize] = 7;
+            transitions[8][i as usize] = 7;
+            transitions[9][i as usize] = 7;
+            transitions[10][i as usize] = 7;
+            transitions[11][i as usize] = 7;
         } else if i == 'o' as u8 {
-            dfa.set_succ(7, i as u8, 8);
+            transitions[7][i as usize] = 8;
         } else if i == 'r' as u8 {
-            dfa.set_succ(8, i as u8, 9);
+            transitions[8][i as usize] = 9;
         } else if i == 'l' as u8 {
-            dfa.set_succ(9, i as u8, 10);
+            transitions[9][i as usize] = 10;
         } else if i == 'd' as u8 {
-            dfa.set_succ(10, i as u8, 11);
+            transitions[10][i as usize] = 11;
         }
     }
-    dfa
+    transitions
 }
 
